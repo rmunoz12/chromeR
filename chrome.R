@@ -58,22 +58,6 @@ calc_name <- function(d, user) {
 }
 
 
-calc_diffs <- function(d) {
-    d <- arrange(d, result_id, chromosome, bp_start, bp_end)
-    r <- dim(d)[1]  #num of rows
-    d$diff <- NA
-    for (i in 1:(r - 1)) {
-        if ((d[i, ]$result_id == d[i+1, ]$result_id) &&
-            (d[i, ]$chromosome == d[i+1, ]$chromosome)) {
-            d[i, ]$diff <- d[i+1, ]$bp_start - d[i, ]$bp_end
-        }
-    }
-    
-    d$result_id <- factor(d$result_id)
-    return(d)
-}
-
-
 get_gap_ahead <- function(bp_end, b_next, n, n_next, c, c_next, cend) {
     if (!is.na(n_next) && n == n_next) {
         if (!is.na(c_next) && c == c_next) {

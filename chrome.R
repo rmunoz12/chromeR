@@ -38,14 +38,22 @@ shift <- function(v, n) {
     # n number to shift by:
     # negative shifts to lower row numbers
     # postive shifts to higher row numbers
-    if (length(v) == 0) {
+    v_len <- length(v)
+    if (v_len < abs(n)) {
+        stop("Shift length greater than vector length.")
+    }
+    if (v_len == 0) {
         return(v)
     }
     if (n < 0) {
         n <- -1 * n
         c(v[-(seq(n))], rep(NA, n))
     } else {
-        c(rep(NA, n), v[1:(length(v) - n)])
+        if (v_len == n) {
+            rep(NA, n)   
+        } else {
+            c(rep(NA, n), v[1:(v_len - n)])
+        }
     }
 }
 
@@ -87,7 +95,11 @@ get_gap_behind <- function(bp_start, n, n_prev, c, c_prev) {
             NA
         }
     } else {
-        NA
+        if (bp_start > 0) {
+            bp_start - 0
+        } else {
+            NA
+        }
     }
 }
 
@@ -182,6 +194,3 @@ plot_chromes <- function(d, title, user, names) {
     }
     return(p)
 }
-
-
-

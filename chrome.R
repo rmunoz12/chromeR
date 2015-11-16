@@ -20,7 +20,9 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-THRESHOLD <- 0
+source("gen_test_data.R")
+
+THRESHOLD <- 2e5
 
 # Chromosome lengths per
 # https://en.wikipedia.org/wiki/Human_genome
@@ -138,7 +140,7 @@ fill_missing_chromes <- function(d) {
 
 chrome_map <- function(d) {
     d <- d[c("result_id", "name", "chromosome", "cend", "bp_start", "bp_end")]
-    d <- arrange(d, result_id, chromosome, bp_start)
+    d <- arrange(d, name, chromosome, bp_start)
     
     d$n_prev <- shift(d$name, 1)
     d$n_next <- shift(d$name, -1)
@@ -194,3 +196,8 @@ plot_chromes <- function(d, title, user, names) {
     }
     return(p)
 }
+
+names <- df %>% group_by(indv2) %>% summarise(count=length(indv2))
+names <- names$indv2
+plot_chromes(df, "test", "A", names)
+# plot_chromes(df, "test", "A", "E")

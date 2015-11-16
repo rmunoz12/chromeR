@@ -1,3 +1,21 @@
+# gen_test_data.R 
+# Test data for chrome.R
+# Copyright (c) 2015 Richard Munoz
+#
+# This file is part of chromeR.
+#
+# chromeR is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software 
+# Foundation, either version 3 of the License, or (at your option) any later 
+# version.
+#
+# chromeR is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# chromeR If not, see http://www.gnu.org/licenses/.
+
 # Chromosome lengths per
 # https://en.wikipedia.org/wiki/Human_genome
 c <- c(249250621, 243199373, 198022430, 191154276, 180915260, 
@@ -27,8 +45,23 @@ p1 <- data.frame(result_id=rep(1), indv1=rep("A"), indv2=rep("B"),
 # Share one segment
 p2 <- data.frame(result_id=rep(2), indv1=rep("A"), indv2=rep("C"),
                  chromosome=4, bp_start=c[4]/2, bp_end=c[4]*(3/4),
-                 length=runif(1), stringsAsFactors=TRUE)
+                 length=runif(1), stringsAsFactors=FALSE)
 
-df <- rbind(p1, p2)
+# Two segments, gap of 2e5
+p3 <- data.frame(result_id=rep(3), indv1=rep("A"), indv2=rep("D"),
+                 chromosome=10, 
+                 bp_start=c(c[10]/2, c[10]/2+1e7+2e5), 
+                 bp_end=c(c[10]/2+1e7, c[10]/2+1e7+2e5+2e7),
+                 length=runif(2), stringsAsFactors=FALSE)
+
+# Share segments at beginning, middle, and end of chromosomes
+p4 <- data.frame(result_id=rep(4), indv1=rep("A"), indv2=rep("E"),
+                 chromosome=c(1, 2, 3, 4, 4, 4), 
+                 bp_start=c(0, 1, c[3]*(4/5), 0, c[4]/5, c[4]*(5/6)),
+                 bp_end=c(c[1]/2, c[2]/5, c[3], c[4]/5-2e5, c[4]/5+1e6, c[4]),
+                 length=runif(6), stringsAsFactors=FALSE)
+
+
+df <- rbind(p1, p2, p3, p4)
 df <- data.frame(id=seq(dim(df)[1]), df)
-rm(c, p1, p2)
+rm(c, p1, p2, p3, p4)

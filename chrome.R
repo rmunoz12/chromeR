@@ -20,7 +20,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-source("gen_test_data.R")
+load("chromeR.RData")
 
 THRESHOLD <- 2e5
 
@@ -36,7 +36,7 @@ chrome_bp = c(249250621, 243199373, 198022430, 191154276, 180915260,
 # Based on
 # http://stackoverflow.com/questions/25995257/r-shift-values-in-single-column-of-dataframe-up
 shift <- function(v, n) {
-    # vector (i.e. column of dataframe)
+    # v vector (i.e. column of dataframe)
     # n number to shift by:
     # negative shifts to lower row numbers
     # postive shifts to higher row numbers
@@ -57,14 +57,6 @@ shift <- function(v, n) {
             c(rep(NA, n), v[1:(v_len - n)])
         }
     }
-}
-
-
-calc_name <- function(d, user) {
-    d$name <- ""
-    d$name[d$indv2 == user] <- d$indv1[d$indv2 == user]
-    d$name[d$indv1 == user] <- d$indv2[d$indv1 == user]
-    return(d)
 }
 
 
@@ -107,66 +99,84 @@ get_gap_behind <- function(bp_start, n, n_prev, c, c_prev) {
 
 
 fill_missing_chromes <- function(d) {
-    n <- d %>% group_by(name) %>% summarise()
-    c <- data.frame(name=rep(n$name, each=22), chromosome=1:22,
+    # Takes input from chrome_map with columns:
+    # 1: key
+    # 2: chromosome
+    # 3: bp_start
+    # 4: type
+    # 5: len
+    n <- d %>% group_by_(names(d)[1]) %>% summarise()
+    c <- data.frame(key=rep(n[[1]], each=22), 
+                    chromosome=1:22,
                     stringsAsFactors=FALSE)
-    x <- d %>% 
-            group_by(name, chromosome) %>% 
-            summarise(count=length(chromosome))
-    c <- c %>% left_join(x, by=c("name", "chromosome"))
-    
-    missing <- which(is.na(c$count))
-    if (length(missing > 0)) {
-        new_rows <- data.frame(name=character(0), 
-                               chromosome=integer(0),
-                               bp_start=logical(0), 
-                               type=character(0),
-                               len=numeric(0),
-                               stringsAsFactors=FALSE)
-        for (j in 1:length(missing)) {
-            new <- data.frame(name=c$name[missing[j]], 
-                              chromosome=c$chromosome[missing[j]],
-                              bp_start=0, 
-                              type="gap_ahead",
-                              len=chrome_bp[c$chromosome[missing[j]]],
-                              stringsAsFactors=FALSE)
-            new_rows <- rbind(new_rows, new)
-        }
-        d <- rbind(d, new_rows)
+    y <- d %>% 
+            group_by_(names(d)[1], names(d)[2]) %>% 
+            summarise_(count=length(names(d)[2]))
+    c <- merge(c, y, by.x=names(c)[1:2], by.y=names(y)[1:2], all.x=TRUE)
+    c <- subset(c, is.na(c$count))
+    if (dim(c)[1] > 0) {
+        c$count <- NULL
+        c <- cbind(c, 
+                   data.frame(0, "gap_ahead",
+                              chrome_bp[c[ , names(c)[2]]],
+                              stringsAsFactors=FALSE))
+        names(c) <- names(d)
+        d <- rbind(d, c)
     }
     return(d)
 }
 
 
 chrome_map <- function(d) {
-    d <- d[c("result_id", "name", "chromosome", "cend", "bp_start", "bp_end")]
-    d <- arrange(d, name, chromosome, bp_start)
+    # Expects the following column order, which is passed
+    # by build_chrome_map():
+    #
+    # 1: key
+    # 2: chromosome
+    # 3: bp_start
+    # 4: bp_end
+    #
+    # This function then appends theses columns internally:
+    # 5: cend
+    # 6: n_prev
+    # 7: n_next
+    # 8: c_prev
+    # 9: c_next
+    # 10: b_next
+    # 11: gap_ahead
+    # 12: gap_behind
+    # 13: share
     
-    d$n_prev <- shift(d$name, 1)
-    d$n_next <- shift(d$name, -1)
-    d$c_prev <- shift(d$chromosome, 1)
-    d$c_next <- shift(d$chromosome, -1)
-    d$b_next <- shift(d$bp_start, -1)
+    d <- d[order(d[1], d[2], d[3]), ]
+    row.names(d) <- NULL
+    d <- cbind(d, chrome_bp[d[, 2]])
     
-    d$gap_ahead <- mapply(d$bp_end, d$b_next, d$name, d$n_next, 
-                          d$chromosome, d$c_next, d$cend,
-                          FUN=get_gap_ahead)
-    d$gap_behind <- mapply(d$bp_start, d$name, d$n_prev, 
-                          d$chromosome, d$c_prev,
-                          FUN=get_gap_behind)
-    d$share <- mapply(d$bp_end, d$bp_start,
-                      FUN=function(end, start) end - start)
+    d$n_prev <- shift(d[ , 1],  1)  # 6
+    d$n_next <- shift(d[ , 1], -1)  # 7
+    d$c_prev <- shift(d[ , 2],  1)  # 8
+    d$c_next <- shift(d[ , 2], -1)  # 9
+    d$b_next <- shift(d[ , 3], -1)  # 10
     
-    d <- d[c("name", "chromosome", "bp_start", "gap_ahead", "gap_behind", "share")]
-    m <- d %>% gather(type, len, -name, -chromosome, -bp_start)
+    d$gap_ahead <- mapply(d[ , 4], d[ , 10], d[ , 1], d[ , 7], 
+                          d[ , 2], d[ , 9], d[ , 5],
+                          FUN=get_gap_ahead)                 # 11
+    d$gap_behind <- mapply(d[ , 3], d[ , 1], d[ , 6], 
+                          d[ , 2], d[ , 8],
+                          FUN=get_gap_behind)                # 12
+    d$share <- mapply(d[ , 4], d[ , 3],
+                      FUN=function(end, start) end - start)  # 13
+    
+    d <- d[c(1:3, 11:13)]
+    cols <- names(d)
+    m <- d %>% gather_("type", "len", colnames(d)[4:6])
     m <- na.omit(m)
     m$type <- factor(m$type, levels=c("gap_behind", "share", "gap_ahead"))
-    m <- arrange(m, name, chromosome, bp_start, type)
+    m <- arrange_(m, cols[1], cols[2], cols[3], "type")
     
-    m$c_next <- shift(m$chromosome, -1)
+    m$c_next <- shift(m[, cols[2]], -1)
     m$type <- as.character(m$type)
     m$type[m$type == "gap_ahead" & 
-               m$chromosome == m$c_next &
+               m[ , cols[2]] == m$c_next &
                m$len <= THRESHOLD] <- "merge"
     m$type <- factor(m$type, levels=c("gap_ahead", "gap_behind", "share", "merge"))
     m$c_next <- NULL
@@ -176,28 +186,28 @@ chrome_map <- function(d) {
 }
 
 
-plot_chromes <- function(d, title, user, names) {
-    d <- filter(d, indv1 == user || indv2 == user)
-    d <- calc_name(d, user)
-    d <- filter(d, name %in% names)
-    d$cend = chrome_bp[d$chromosome]
-    f <- chrome_map(d)
-    levels(f$type) <- c("Not shared", "Not shared", "Shared", "Merge")
-    p <- ggplot(f, aes(x=chromosome, y=len, fill=type)) +
+build_chrome_map <- function(data, key, chromosome, bp_start, bp_end) {
+    cols <- c(key, chromosome, bp_start, bp_end)
+    data <- data[cols]
+    return(chrome_map(data))
+}
+
+
+plot_chromes <- function(d, key, title) {
+    levels(d$type) <- c("Not shared", "Not shared", "Shared", "Merge")
+    p <- ggplot(d, aes(x=chromosome, y=len, fill=type)) +
         geom_bar(stat="identity", alpha=.95) + 
         coord_flip() + 
         scale_x_reverse() +
         scale_y_continuous("base pair") +
         scale_fill_manual("", values=c("#e9a3c9", "#a1d76a", "#ffffb3")) +
         theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
-        ggtitle(title)
-    if (length(names) > 1) {
-        p <- p + facet_wrap(~name)
-    }
+        ggtitle(title) + 
+        facet_wrap(as.formula(paste0("~", key)))
     return(p)
 }
 
-names <- df %>% group_by(indv2) %>% summarise(count=length(indv2))
-names <- names$indv2
-plot_chromes(df, "test", "A", names)
-# plot_chromes(df, "test", "A", "E")
+
+df <- test_ibd_segments
+cm <- build_chrome_map(df, "indv2", "chromosome", "bp_start", "bp_end")
+plot_chromes(cm, "indv2", "test")

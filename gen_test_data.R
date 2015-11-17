@@ -64,4 +64,5 @@ p4 <- data.frame(result_id=rep(4), indv1=rep("A"), indv2=rep("E"),
 
 df <- rbind(p1, p2, p3, p4)
 df <- data.frame(id=seq(dim(df)[1]), df)
-rm(c, p1, p2, p3, p4)
+test_ibd_segments <- df
+save(test_ibd_segments, file="chromeR.RData")

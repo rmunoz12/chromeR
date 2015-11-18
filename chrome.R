@@ -24,15 +24,6 @@ load("chromeR.RData")
 
 THRESHOLD <- 2e5
 
-# Chromosome lengths per
-# https://en.wikipedia.org/wiki/Human_genome
-chrome_bp = c(249250621, 243199373, 198022430, 191154276, 180915260, 
-              171115067, 159138663, 146364022, 141213431, 135534747,
-              135006516, 133851895, 115169878, 107349540, 102531392, 
-              90354753,  81195210,  78077248,  59128983,  63025520, 
-              48129895,  51304566)
-
-
 # Based on
 # http://stackoverflow.com/questions/25995257/r-shift-values-in-single-column-of-dataframe-up
 shift <- function(v, n) {
@@ -105,6 +96,7 @@ fill_missing_chromes <- function(d) {
     # 3: bp_start
     # 4: type
     # 5: len
+    
     n <- d %>% group_by_(names(d)[1]) %>% summarise()
     c <- data.frame(key=rep(n[[1]], each=22), 
                     chromosome=1:22,
@@ -127,7 +119,7 @@ fill_missing_chromes <- function(d) {
 }
 
 
-chrome_map <- function(d) {
+chrome_map_helper <- function(d) {
     # Expects the following column order, which is passed
     # by build_chrome_map():
     #
@@ -135,21 +127,13 @@ chrome_map <- function(d) {
     # 2: chromosome
     # 3: bp_start
     # 4: bp_end
-    #
-    # This function then appends theses columns internally:
-    # 5: cend
-    # 6: n_prev
-    # 7: n_next
-    # 8: c_prev
-    # 9: c_next
-    # 10: b_next
-    # 11: gap_ahead
-    # 12: gap_behind
-    # 13: share
     
+    orig_cols <- names(d)
+    names(d) <- make.names(seq(ncol(d))) 
     d <- d[order(d[1], d[2], d[3]), ]
     row.names(d) <- NULL
-    d <- cbind(d, chrome_bp[d[, 2]])
+    
+    d <- cbind(d, cend=chrome_bp[d[, 2]]) # 5
     
     d$n_prev <- shift(d[ , 1],  1)  # 6
     d$n_next <- shift(d[ , 1], -1)  # 7
@@ -157,11 +141,11 @@ chrome_map <- function(d) {
     d$c_next <- shift(d[ , 2], -1)  # 9
     d$b_next <- shift(d[ , 3], -1)  # 10
     
-    d$gap_ahead <- mapply(d[ , 4], d[ , 10], d[ , 1], d[ , 7], 
-                          d[ , 2], d[ , 9], d[ , 5],
+    d$gap_ahead <- mapply(d[ , 4], d$b_next, d[ , 1], d$n_next, 
+                          d[ , 2], d$c_next, d$cend,
                           FUN=get_gap_ahead)                 # 11
-    d$gap_behind <- mapply(d[ , 3], d[ , 1], d[ , 6], 
-                          d[ , 2], d[ , 8],
+    d$gap_behind <- mapply(d[ , 3], d[ , 1], d$n_prev, 
+                          d[ , 2], d$c_prev,
                           FUN=get_gap_behind)                # 12
     d$share <- mapply(d[ , 4], d[ , 3],
                       FUN=function(end, start) end - start)  # 13
@@ -182,14 +166,15 @@ chrome_map <- function(d) {
     m$c_next <- NULL
     
     m <- fill_missing_chromes(m)
+    names(m)[1:3] <- orig_cols[1:3]
     return(m)
 }
 
 
-build_chrome_map <- function(data, key, chromosome, bp_start, bp_end) {
+chrome_map <- function(data, key, chromosome, bp_start, bp_end) {
     cols <- c(key, chromosome, bp_start, bp_end)
     data <- data[cols]
-    return(chrome_map(data))
+    return(chrome_map_helper(data))
 }
 
 
@@ -209,5 +194,5 @@ plot_chromes <- function(d, key, title) {
 
 
 df <- test_ibd_segments
-cm <- build_chrome_map(df, "indv2", "chromosome", "bp_start", "bp_end")
+cm <- chrome_map(df, "indv2", "chromosome", "bp_start", "bp_end")
 plot_chromes(cm, "indv2", "test")

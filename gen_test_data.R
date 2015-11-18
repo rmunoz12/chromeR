@@ -18,11 +18,12 @@
 
 # Chromosome lengths per
 # https://en.wikipedia.org/wiki/Human_genome
-c <- c(249250621, 243199373, 198022430, 191154276, 180915260, 
+chrome_bp <- c(249250621, 243199373, 198022430, 191154276, 180915260, 
               171115067, 159138663, 146364022, 141213431, 135534747,
               135006516, 133851895, 115169878, 107349540, 102531392, 
               90354753,  81195210,  78077248,  59128983,  63025520, 
               48129895,  51304566)
+c <- chrome_bp
 
 # Input dataframe columns
 # ------------------------
@@ -65,4 +66,4 @@ p4 <- data.frame(result_id=rep(4), indv1=rep("A"), indv2=rep("E"),
 df <- rbind(p1, p2, p3, p4)
 df <- data.frame(id=seq(dim(df)[1]), df)
 test_ibd_segments <- df
-save(test_ibd_segments, file="chromeR.RData")
+save(test_ibd_segments, chrome_bp, file="chromeR.RData")

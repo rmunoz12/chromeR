@@ -36,7 +36,7 @@ used to identifiy areas that are small (which \code{chrome_map} will then
 classify as "merge").
 }
 \examples{
-data(chromeR)
+data(test_ibd_segments)
 chrome_map(test_ibd_segments, "result_id", "chromosome", "bp_start", "bp_end")
 }
 

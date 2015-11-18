@@ -2,3 +2,4 @@
 
 export(chrome_map)
 export(chrome_plot)
+importFrom(dplyr,"%>%")

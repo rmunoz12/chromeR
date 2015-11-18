@@ -85,6 +85,7 @@ get_gap_behind <- function(bp_start, n, n_prev, c, c_prev) {
 }
 
 
+#' @importFrom dplyr %>%
 fill_missing_chromes <- function(d) {
     # Takes input from chrome_map with columns:
     # 1: key
@@ -92,21 +93,22 @@ fill_missing_chromes <- function(d) {
     # 3: bp_start
     # 4: type
     # 5: len
-
-    n <- d %>% dplyr::group_by_(names(d)[1]) %>% dplyr::summarise()
+    n <- d %>%
+         dplyr::group_by_(names(d)[1]) %>%
+         dplyr::summarise()
     c <- data.frame(key=rep(n[[1]], each=22),
                     chromosome=1:22,
                     stringsAsFactors=FALSE)
     y <- d %>%
-            dplyr::group_by_(names(d)[1], names(d)[2]) %>%
-            dplyr::summarise_(count=length(names(d)[2]))
+         dplyr::group_by_(names(d)[1], names(d)[2]) %>%
+         dplyr::summarise_(count=length(names(d)[2]))
     c <- merge(c, y, by.x=names(c)[1:2], by.y=names(y)[1:2], all.x=TRUE)
     c <- subset(c, is.na(c$count))
     if (dim(c)[1] > 0) {
         c$count <- NULL
         c <- cbind(c,
                    data.frame(0, "gap_ahead",
-                              chrome_bp[c[ , names(c)[2]]],
+                              chromeR::chrome_bp[c[ , names(c)[2]]],
                               stringsAsFactors=FALSE))
         names(c) <- names(d)
         d <- rbind(d, c)
@@ -115,6 +117,7 @@ fill_missing_chromes <- function(d) {
 }
 
 
+#' @importFrom dplyr %>%
 chrome_map_helper <- function(d, threshold) {
     # Expects the following column order, which is passed
     # by build_chrome_map():
@@ -129,7 +132,7 @@ chrome_map_helper <- function(d, threshold) {
     d <- d[order(d[1], d[2], d[3]), ]
     row.names(d) <- NULL
 
-    d <- cbind(d, cend=chrome_bp[d[, 2]]) # 5
+    d <- cbind(d, cend=chromeR::chrome_bp[d[, 2]]) # 5
 
     d$n_prev <- shift(d[ , 1],  1)  # 6
     d$n_next <- shift(d[ , 1], -1)  # 7
@@ -192,7 +195,7 @@ chrome_map_helper <- function(d, threshold) {
 #'      should be classified as a "merge."
 #'
 #' @examples
-#' data(chromeR)
+#' data(test_ibd_segments)
 #' chrome_map(test_ibd_segments, "result_id", "chromosome", "bp_start", "bp_end")
 chrome_map <- function(data, key, chromosome, bp_start, bp_end,
                        threshold=2e5) {
@@ -210,22 +213,32 @@ chrome_map <- function(data, key, chromosome, bp_start, bp_end,
 #' @param d Dataframe output from \code{chrome_map}.
 #' @param key String that identifies the column in \code{d} that uniquely
 #'      identifies the pair of individuals corresponding to each row.
+#' @param chromosome String indentifying the column in \code{d} that
+#'      indicates the chromosome of each IBD segment.
+#' @param length String indentifying the column in \code{d} that
+#'      indicates the length of each IBD segment, gap, or merge, calculated by
+#'      \code{chrome_map}.
+#' @param type String indentifying the column in \code{d} that
+#'      indicates the type of each value, calculated by \code{chrome_map}.
 #' @param title String for the plot's title.
 #'
 #' @examples
-#' data(chromeR)
+#' data(test_ibd_segments)
 #' df <- chrome_map(test_ibd_segments, "result_id", "chromosome", "bp_start", "bp_end")
-#' chrome_plot(df, "result_id", "Test IBD Matches")
-chrome_plot <- function(d, key, title) {
+#' chrome_plot(df, "result_id", "chromosome", "len", "type", "Test IBD Matches")
+chrome_plot <- function(d, key, chromosome, length, type, title) {
+    # chromosome <- which(names(d) == chromosome)
+    # length <- which(names(d) == length)
+    # type <- which(names(d) == type)
     levels(d$type) <- c("Not shared", "Not shared", "Shared", "Merge")
-    p <- ggplot2::ggplot(d, ggplot2::aes(x=chromosome, y=len, fill=type)) +
-        ggplot2::geom_bar(stat="identity", alpha=.95) +
-        ggplot2::coord_flip() +
-        ggplot2::scale_x_reverse() +
-        ggplot2::scale_y_continuous("base pair") +
-        ggplot2::scale_fill_manual("", values=c("#e9a3c9", "#a1d76a", "#ffffb3")) +
-        ggplot2::theme(axis.text.x = ggplot2::element_text(angle=90, vjust=0.5, hjust=1)) +
-        ggplot2::ggtitle(title) +
-        ggplot2::facet_wrap(as.formula(paste0("~", key)))
+    p <- ggplot2::ggplot(d, ggplot2::aes_string(x=chromosome, y=length, fill=type)) +
+         ggplot2::geom_bar(stat="identity", alpha=.95) +
+         ggplot2::coord_flip() +
+         ggplot2::scale_x_reverse() +
+         ggplot2::scale_y_continuous("base pair") +
+         ggplot2::scale_fill_manual("", values=c("#e9a3c9", "#a1d76a", "#ffffb3")) +
+         ggplot2::theme(axis.text.x = ggplot2::element_text(angle=90, vjust=0.5, hjust=1)) +
+         ggplot2::ggtitle(title) +
+         ggplot2::facet_wrap(as.formula(paste0("~", key)))
     return(p)
 }

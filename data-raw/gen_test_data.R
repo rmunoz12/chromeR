@@ -25,7 +25,7 @@ chrome_bp <- c(249250621, 243199373, 198022430, 191154276, 180915260,
               48129895,  51304566)
 c <- chrome_bp
 
-# Input dataframe columns
+# Input dataframe columns from ersa
 # ------------------------
 # @param id integer vector
 # @param result_id integer vector
@@ -66,4 +66,4 @@ p4 <- data.frame(result_id=rep(4), indv1=rep("A"), indv2=rep("E"),
 df <- rbind(p1, p2, p3, p4)
 df <- data.frame(id=seq(dim(df)[1]), df)
 test_ibd_segments <- df
-save(test_ibd_segments, chrome_bp, file="data/chromeR.RData")
+devtools::use_data(test_ibd_segments, chrome_bp, overwrite=TRUE)

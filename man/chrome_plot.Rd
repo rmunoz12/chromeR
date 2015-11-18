@@ -4,7 +4,7 @@
 \alias{chrome_plot}
 \title{IBD segments plot}
 \usage{
-chrome_plot(d, key, title)
+chrome_plot(d, key, chromosome, length, type, title)
 }
 \arguments{
 \item{d}{Dataframe output from \code{chrome_map}.}
@@ -12,14 +12,24 @@ chrome_plot(d, key, title)
 \item{key}{String that identifies the column in \code{d} that uniquely
 identifies the pair of individuals corresponding to each row.}
 
+\item{chromosome}{String indentifying the column in \code{d} that
+indicates the chromosome of each IBD segment.}
+
+\item{length}{String indentifying the column in \code{d} that
+indicates the length of each IBD segment, gap, or merge, calculated by
+\code{chrome_map}.}
+
+\item{type}{String indentifying the column in \code{d} that
+indicates the type of each value, calculated by \code{chrome_map}.}
+
 \item{title}{String for the plot's title.}
 }
 \description{
 Plots the output of \code{chrome_map}.
 }
 \examples{
-data(chromeR)
+data(test_ibd_segments)
 df <- chrome_map(test_ibd_segments, "result_id", "chromosome", "bp_start", "bp_end")
-chrome_plot(df, "result_id", "Test IBD Matches")
+chrome_plot(df, "result_id", "chromosome", "len", "type", "Test IBD Matches")
 }
 

@@ -4,8 +4,10 @@ Title: Visualizing IBD Segments on Chromosomes
 Version: 0.1.0
 Author: Richard Munoz
 Maintainer: Richard Munoz <rmunoz@cs.columbia.edu>
-Description: chromeR provides two functions, one for calculating the lengths of
-shared IBD segments and lengths not shared (gaps) and another function that
-takes that output and provides an example plot.
+Description: chromeR provides two functions, one for calculating the lengths
+    of shared IBD segments and lengths not shared (gaps) and another function that
+    takes that output and provides an example plot.
 License: GPLv3
 LazyData: TRUE
+Imports: ggplot2, dplyr, tidyr
+RoxygenNote: 5.0.1
